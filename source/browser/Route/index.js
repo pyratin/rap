@@ -1,20 +1,22 @@
 /* eslint-disable react/no-unknown-property */
 
-import { useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { Application, useExtend, useApplication } from '@pixi/react';
 import * as pixiLayout from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 
-const ContainerComponent = () => {
+const ApplicationComponent = () => {
   useExtend({ LayoutContainer });
 
   const {
     app: { stage, screen, renderer }
   } = useApplication();
 
+  const ref = useRef(undefined);
+
   useEffect(() => {
     Object.assign(stage, {
-      layout: /** @type {pixiLayout.LayoutOptions} */ ({
+      layout: /** @type {pixiLayout.LayoutStyles} */ ({
         width: screen.width,
         height: screen.height,
         justifyContent: 'center',
@@ -26,9 +28,9 @@ const ContainerComponent = () => {
   useEffect(() => {
     const onRendererResizeHandle = () => {
       Object.assign(stage, {
-        layout: /** @type {pixiLayout.LayoutOptions} */ ({
-          width: window.innerWidth,
-          height: window.innerHeight
+        layout: /** @type {pixiLayout.LayoutStyles} */ ({
+          width: screen.width,
+          height: screen.height
         })
       });
     };
@@ -38,21 +40,53 @@ const ContainerComponent = () => {
     return () => {
       renderer.off('resize', onRendererResizeHandle);
     };
-  }, [renderer, stage]);
+  }, [renderer, stage, screen]);
+
+  const option = {
+    borderWidth: 1,
+    borderColor: 0x000000,
+    borderRadius: 8
+  };
 
   return (
     // @ts-expect-error native
     <pixiLayoutContainer
       layout={
-        /** @type {pixiLayout.LayoutOptions} */ ({
+        /** @type {pixiLayout.LayoutStyles} */ ({
           width: 200,
-          height: 100,
-          borderWidth: 2,
-          borderColor: 0x000000,
-          borderRadius: 8
+          height: 250,
+          padding: 10,
+          ...option
         })
       }
     >
+      {/* @ts-expect-error native */}
+      <pixiLayoutContainer
+        ref={ref}
+        layout={
+          /** @type {pixiLayout.LayoutStyles} */ ({
+            position: 'static',
+            width: 100,
+            height: 100,
+            ...option
+          })
+        }
+      >
+        {/* @ts-expect-error native */}
+        <pixiLayoutContainer
+          layout={
+            /** @type {pixiLayout.LayoutStyles} */ ({
+              position: 'absolute',
+              bottom: 10,
+              width: '50%',
+              height: 25,
+              ...option
+            })
+          }
+        />
+        {/* @ts-expect-error native */}
+      </pixiLayoutContainer>
+
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
@@ -61,8 +95,8 @@ const ContainerComponent = () => {
 const Route = () => {
   return (
     <div className='Route'>
-      <Application backgroundColor={0x1099bb} resizeTo={window}>
-        <ContainerComponent />
+      <Application resizeTo={window} backgroundColor={0x1099bb}>
+        <ApplicationComponent />
       </Application>
     </div>
   );
