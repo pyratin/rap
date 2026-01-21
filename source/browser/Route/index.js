@@ -1,19 +1,53 @@
 /* eslint-disable react/no-unknown-property */
 
-import { useRef, useEffect } from 'react';
-import { Application, useExtend, useApplication, useTick } from '@pixi/react';
-import pixiJs from 'pixi.js';
+import { useRef, useState, useEffect } from 'react';
+import { Application, useExtend, useApplication } from '@pixi/react';
+import pixiJs, { Assets, Texture, AnimatedSprite } from 'pixi.js';
 import * as pixiLayout from '@pixi/layout';
-import { LayoutContainer, LayoutHTMLText } from '@pixi/layout/components';
+import { LayoutContainer } from '@pixi/layout/components';
 
-const ApplicationComponent = () => {
-  useExtend({ LayoutContainer, LayoutHTMLText });
+const AnimatedSpriteComponent = ({ index }) => {
+  useExtend({ AnimatedSprite });
+
+  const ref = useRef(undefined);
+
+  const [textureCollection, textureCollectionSet] = useState([
+    { texture: Texture.EMPTY, time: 0 }
+  ]);
+
+  useEffect(() => {
+    Assets.load('asset/0123456789.json')
+      .then(({ data: { frames }, textures }) =>
+        Object.entries(frames).map(([key, { duration }]) => ({
+          texture: textures[key],
+          time: duration
+        }))
+      )
+      .then(textureCollectionSet);
+  }, []);
+
+  useEffect(() => {
+    textureCollection[0].texture !== Texture.EMPTY &&
+      /** @type {pixiJs.AnimatedSprite} */ (ref.current).play();
+  }, [textureCollection]);
+
+  return (
+    <pixiAnimatedSprite
+      ref={ref}
+      textures={textureCollection}
+      layout={{}}
+      scale={2}
+      animationSpeed={!index ? 0.5 : 1}
+    />
+  );
+};
+
+const ApplicationComponent = ({ index }) => {
+  useExtend({ LayoutContainer });
 
   const {
     app: { stage, screen, renderer }
   } = useApplication();
-
-  const ref = useRef(undefined);
 
   useEffect(() => {
     Object.assign(stage, {
@@ -43,69 +77,21 @@ const ApplicationComponent = () => {
     };
   }, [renderer, stage, screen]);
 
-  useTick(() => {
-    Object.assign(ref.current, {
-      rotation: ref.current.rotation + 0.01
-    });
-  });
-
-  const defaults = {
-    backgroundColor: `#1e293b`,
-    borderWidth: 1,
-    borderColor: `#fff`
-  };
-
   return (
     // @ts-expect-error native
     <pixiLayoutContainer
       layout={
         /** @type {pixiLayout.LayoutStyles} */ ({
-          width: 200,
-          height: 200,
           justifyContent: 'center',
           alignItems: 'center',
-          backgroundColor: `#0f172a`,
-          ...defaults
+          padding: 40,
+          borderWidth: 10,
+          borderRadius: 20,
+          borderColor: 0x555555
         })
       }
     >
-      {/* @ts-expect-error native */}
-      <pixiLayoutContainer
-        ref={ref}
-        layout={
-          /** @type {pixiLayout.LayoutStyles} */ ({
-            height: 100,
-            width: 100,
-            justifyContent: 'center',
-            alignItems: 'center',
-            alignContent: 'center',
-            ...defaults
-          })
-        }
-      >
-        {/* @ts-expect-error native */}
-        <pixiLayoutHTMLText
-          text="Hello <span style='color: gold'>Pixi!</span> 🚀"
-          layout={
-            /** @type {pixiLayout.LayoutStyles} */ ({
-              width: '50%',
-              height: '100%',
-              justifyContent: 'center',
-              alignItems: 'center'
-            })
-          }
-          style={
-            /** @type {CSSStyleRule & pixiJs.TextStyle} */ ({
-              wordWrap: true,
-              align: 'center',
-              fontSize: 32,
-              fill: '#ffffff'
-            })
-          }
-        />
-        {/* @ts-expect-error native */}
-      </pixiLayoutContainer>
-
+      <AnimatedSpriteComponent index={index} />
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
@@ -115,7 +101,21 @@ const Route = () => {
   return (
     <div className='Route'>
       <Application resizeTo={window} backgroundColor={0x1099bb}>
-        <ApplicationComponent />
+        {/* @ts-expect-error native */}
+        <pixiLayoutContainer
+          layout={
+            /** @type {pixiLayout.LayoutStyles} */ ({
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 20
+            })
+          }
+        >
+          {Array.from({ length: 2 }).map((_, index) => {
+            return <ApplicationComponent key={index} index={index} />;
+          })}
+          {/* @ts-expect-error native */}
+        </pixiLayoutContainer>
       </Application>
     </div>
   );

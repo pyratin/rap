@@ -34,5 +34,15 @@ export default defineConfig([
   eslintPluginPrettierRecommended,
   eslintPluginReactHooks.configs.flat['recommended-latest'],
   eslintPluginJsdoc.configs['flat/recommended'],
-  { rules: { 'no-console': 'error', 'react/react-in-jsx-scope': 'off' } }
+  {
+    rules: {
+      'no-console': 'error',
+      'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      '@typescript-eslint/no-unused-expressions': [
+        'error',
+        { allowShortCircuit: true }
+      ]
+    }
+  }
 ]);
