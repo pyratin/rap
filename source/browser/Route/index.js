@@ -1,12 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 
 import { useRef, useEffect } from 'react';
-import { Application, useExtend, useApplication } from '@pixi/react';
+import { Application, useExtend, useApplication, useTick } from '@pixi/react';
+import pixiJs from 'pixi.js';
 import * as pixiLayout from '@pixi/layout';
-import { LayoutContainer } from '@pixi/layout/components';
+import { LayoutContainer, LayoutHTMLText } from '@pixi/layout/components';
 
 const ApplicationComponent = () => {
-  useExtend({ LayoutContainer });
+  useExtend({ LayoutContainer, LayoutHTMLText });
 
   const {
     app: { stage, screen, renderer }
@@ -42,10 +43,16 @@ const ApplicationComponent = () => {
     };
   }, [renderer, stage, screen]);
 
-  const option = {
+  useTick(() => {
+    Object.assign(ref.current, {
+      rotation: ref.current.rotation + 0.01
+    });
+  });
+
+  const defaults = {
+    backgroundColor: `#1e293b`,
     borderWidth: 1,
-    borderColor: 0x000000,
-    borderRadius: 8
+    borderColor: `#fff`
   };
 
   return (
@@ -54,9 +61,11 @@ const ApplicationComponent = () => {
       layout={
         /** @type {pixiLayout.LayoutStyles} */ ({
           width: 200,
-          height: 250,
-          padding: 10,
-          ...option
+          height: 200,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: `#0f172a`,
+          ...defaults
         })
       }
     >
@@ -65,22 +74,32 @@ const ApplicationComponent = () => {
         ref={ref}
         layout={
           /** @type {pixiLayout.LayoutStyles} */ ({
-            position: 'static',
-            width: 100,
             height: 100,
-            ...option
+            width: 100,
+            justifyContent: 'center',
+            alignItems: 'center',
+            alignContent: 'center',
+            ...defaults
           })
         }
       >
         {/* @ts-expect-error native */}
-        <pixiLayoutContainer
+        <pixiLayoutHTMLText
+          text="Hello <span style='color: gold'>Pixi!</span> 🚀"
           layout={
             /** @type {pixiLayout.LayoutStyles} */ ({
-              position: 'absolute',
-              bottom: 10,
               width: '50%',
-              height: 25,
-              ...option
+              height: '100%',
+              justifyContent: 'center',
+              alignItems: 'center'
+            })
+          }
+          style={
+            /** @type {CSSStyleRule & pixiJs.TextStyle} */ ({
+              wordWrap: true,
+              align: 'center',
+              fontSize: 32,
+              fill: '#ffffff'
             })
           }
         />
