@@ -1,97 +1,86 @@
 /* eslint-disable react/no-unknown-property */
 
 import { useRef, useState, useEffect } from 'react';
-import { Application, useExtend, useApplication } from '@pixi/react';
-import pixiJs, { Assets, Texture, AnimatedSprite } from 'pixi.js';
-import * as pixiLayout from '@pixi/layout';
+import { Application, useExtend, useApplication, useTick } from '@pixi/react';
+import pixiJs, { Graphics, Texture, AnimatedSprite, Assets } from 'pixi.js';
+import '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 
-const AnimatedSpriteComponent = ({ index }) => {
+const AnimatedSpriteComponent = ({ boundRef }) => {
   useExtend({ AnimatedSprite });
 
   const ref = useRef(undefined);
 
-  const [textureCollection, textureCollectionSet] = useState([
-    { texture: Texture.EMPTY, time: 0 }
-  ]);
+  const [textureCollection, textureCollectionSet] = useState([Texture.EMPTY]);
 
   useEffect(() => {
-    Assets.load('asset/0123456789.json')
-      .then(({ data: { frames }, textures }) =>
-        Object.entries(frames).map(([key, { duration }]) => ({
-          texture: textures[key],
-          time: duration
-        }))
-      )
+    Assets.load('asset/mc.json')
+      .then(({ textures }) => Object.values(textures))
       .then(textureCollectionSet);
   }, []);
 
   useEffect(() => {
-    textureCollection[0].texture !== Texture.EMPTY &&
-      /** @type {pixiJs.AnimatedSprite} */ (ref.current).play();
+    textureCollection[0] !== Texture.EMPTY &&
+      /** @type {pixiJs.AnimatedSprite} */ (ref.current).gotoAndPlay(
+        (Math.random() * textureCollection.length) | 0
+      );
   }, [textureCollection]);
 
+  useEffect(() => {
+    Object.assign(
+      ref.current,
+      /** @type {pixiJs.AnimatedSpriteOptions} */ ({
+        position: {
+          x: Math.random() * boundRef.current?.maxX,
+          y: Math.random() * boundRef.current?.maxY
+        },
+        rotation: Math.random() * (Math.PI * 2),
+        scale: Math.random() * 0.5 + 1,
+        animationSpeed: 1
+      })
+    );
+  });
+
   return (
-    <pixiAnimatedSprite
-      ref={ref}
-      textures={textureCollection}
-      layout={{}}
-      scale={2}
-      animationSpeed={!index ? 0.5 : 1}
-    />
+    <pixiAnimatedSprite ref={ref} textures={textureCollection} anchor={0.5} />
   );
 };
 
-const ApplicationComponent = ({ index }) => {
-  useExtend({ LayoutContainer });
+const ApplicationComponent = () => {
+  useExtend({ LayoutContainer, Graphics });
 
   const {
-    app: { stage, screen, renderer }
+    app: { screen }
   } = useApplication();
 
-  useEffect(() => {
-    Object.assign(stage, {
-      layout: /** @type {pixiLayout.LayoutStyles} */ ({
-        width: screen.width,
-        height: screen.height,
-        justifyContent: 'center',
-        alignItems: 'center'
-      })
-    });
-  }, [stage, screen]);
+  const ref = useRef(undefined);
+
+  const boundRef = useRef(undefined);
 
   useEffect(() => {
-    const onRendererResizeHandle = () => {
-      Object.assign(stage, {
-        layout: /** @type {pixiLayout.LayoutStyles} */ ({
-          width: screen.width,
-          height: screen.height
-        })
-      });
-    };
+    boundRef.current = /** @type {pixiJs.AnimatedSprite} */ (
+      ref.current
+    ).getBounds();
+  }, []);
 
-    renderer.on('resize', onRendererResizeHandle);
-
-    return () => {
-      renderer.off('resize', onRendererResizeHandle);
-    };
-  }, [renderer, stage, screen]);
+  useTick(() => {
+    Object.assign(ref.current, { rotation: ref.current.rotation + 0.0 });
+  });
 
   return (
     // @ts-expect-error native
-    <pixiLayoutContainer
-      layout={
-        /** @type {pixiLayout.LayoutStyles} */ ({
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 40,
-          borderWidth: 10,
-          borderRadius: 20,
-          borderColor: 0x555555
-        })
-      }
-    >
-      <AnimatedSpriteComponent index={index} />
+    <pixiLayoutContainer ref={ref}>
+      <pixiGraphics
+        draw={(graphics) => {
+          graphics
+            .rect(0, 0, screen.width, screen.height)
+            .stroke({ width: 10, alignment: 1, color: 0x000000 });
+        }}
+      />
+
+      {Array.from({ length: 50 }).map((_, index) => {
+        return <AnimatedSpriteComponent key={index} boundRef={boundRef} />;
+      })}
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
@@ -101,21 +90,7 @@ const Route = () => {
   return (
     <div className='Route'>
       <Application resizeTo={window} backgroundColor={0x1099bb}>
-        {/* @ts-expect-error native */}
-        <pixiLayoutContainer
-          layout={
-            /** @type {pixiLayout.LayoutStyles} */ ({
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 20
-            })
-          }
-        >
-          {Array.from({ length: 2 }).map((_, index) => {
-            return <ApplicationComponent key={index} index={index} />;
-          })}
-          {/* @ts-expect-error native */}
-        </pixiLayoutContainer>
+        <ApplicationComponent />
       </Application>
     </div>
   );
