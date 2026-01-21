@@ -60,5 +60,10 @@ export default {
         }
       }
     }
+  },
+  resolve: {
+    alias: {
+      'react-reconciler/constants': 'react-reconciler/constants.js'
+    }
   }
 };
