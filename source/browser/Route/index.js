@@ -1,36 +1,43 @@
 /* eslint-disable react/no-unknown-property */
 
-import { useRef, useState, useEffect } from 'react';
-import { Application, useExtend, useApplication, useTick } from '@pixi/react';
-import { Assets, Texture, AnimatedSprite } from 'pixi.js';
+import { useState, useEffect } from 'react';
+import { Application, useExtend, useApplication } from '@pixi/react';
+import { Assets, Texture, Sprite } from 'pixi.js';
 import * as pixiLayout from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 
-const AnimatedSpriteComponent = () => {
-  useExtend({ AnimatedSprite });
+const assetAliasCollection = ['flowerTop', 'eggHead'];
 
-  const ref = useRef(undefined);
+const SpriteComponent = () => {
+  useExtend({ Sprite });
 
-  const [textureCollection, textureCollectionSet] = useState([Texture.EMPTY]);
+  const [texture, textureSet] = useState(Texture.EMPTY);
 
-  useEffect(() => {
-    Assets.load('asset/fighter.json')
-      .then(({ textures }) => Object.values(textures))
-      .then(textureCollectionSet);
-  }, []);
+  const [assetAliasActiveIndex, assetAliasActiveIndexSet] = useState(0);
 
   useEffect(() => {
-    textureCollection[0] !== Texture.EMPTY && ref.current.play();
-  }, [textureCollection]);
+    Assets.load(assetAliasCollection[assetAliasActiveIndex]).then(textureSet);
+  }, [assetAliasActiveIndex]);
 
   return (
-    <pixiAnimatedSprite
-      ref={ref}
-      anchor={0.5}
-      layout={true}
-      textures={textureCollection}
-      animationSpeed={0.5}
-    />
+    texture !== Texture.EMPTY && (
+      <pixiSprite
+        layout={
+          /** @type {pixiLayout.LayoutStyles} */ ({
+            width: 200,
+            height: 200,
+            objectFit: 'contain',
+            borderWidth: 2,
+            borderColor: 0xff0000
+          })
+        }
+        anchor={0.5}
+        texture={texture}
+        eventMode='static'
+        cursor='pointer'
+        onClick={() => assetAliasActiveIndexSet(!assetAliasActiveIndex ? 1 : 0)}
+      />
+    )
   );
 };
 
@@ -38,10 +45,8 @@ const ApplicationComponent = () => {
   useExtend({ LayoutContainer });
 
   const {
-    app: { stage, screen, renderer }
+    app: { stage, screen }
   } = useApplication();
-
-  const ref = useRef(undefined);
 
   useEffect(() => {
     Object.assign(stage, {
@@ -54,50 +59,37 @@ const ApplicationComponent = () => {
     });
   }, [stage, screen]);
 
-  useEffect(() => {
-    const onRendererResizeHandle = () => {
-      Object.assign(stage, {
-        layout: /** @type {pixiLayout.LayoutStyles} */ ({
-          width: screen.width,
-          height: screen.height
-        })
-      });
-    };
-
-    renderer.on('resize', onRendererResizeHandle);
-
-    return () => {
-      renderer.off('resize', onRendererResizeHandle);
-    };
-  }, [renderer, stage, screen]);
-
-  useTick(() => {
-    Object.assign(ref.current, {
-      rotation: ref.current.rotation + 0.01
-    });
-  });
-
   return (
     /* @ts-expect-error native */
     <pixiLayoutContainer
-      ref={ref}
       layout={
         /** @type {pixiLayout.LayoutStyles} */ ({
-          padding: 20,
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 40,
           borderWidth: 1,
-          borderRadius: 12,
-          borderColor: 0x00000,
-          backgroundColor: 0x00ff0
+          borderColor: 0xff000
         })
       }
     >
-      <AnimatedSpriteComponent />
+      <SpriteComponent />
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
 };
 
 const Route = () => {
+  useEffect(() => {
+    Assets.add(
+      assetAliasCollection.map((alias) => ({
+        alias,
+        src: `asset/${alias}.png`
+      }))
+    );
+
+    Assets.backgroundLoad(assetAliasCollection);
+  }, []);
+
   return (
     <div className='Route'>
       <Application resizeTo={window} backgroundColor={0x1099bb}>
