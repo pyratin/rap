@@ -2,51 +2,84 @@
 
 import { useState, useEffect } from 'react';
 import { Application, useExtend, useApplication } from '@pixi/react';
-import { Assets, Texture, Sprite } from 'pixi.js';
+import pixiJs, { Assets, Texture } from 'pixi.js';
 import * as pixiLayout from '@pixi/layout';
-import { LayoutContainer } from '@pixi/layout/components';
+import { LayoutContainer, LayoutSprite } from '@pixi/layout/components';
 
-const assetAliasCollection = ['flowerTop', 'eggHead'];
+/** @type {[string, string[]][]} */
+const bundleDefinitionCollection = [
+  ['load-screen', ['flowerTop']],
+  ['game-screen', ['eggHead']]
+];
 
-const SpriteComponent = () => {
-  useExtend({ Sprite });
+const BundleComponent = ({
+  bundleDefinitionIndexActive,
+  _bundleDefinitionIndexActiveSet
+}) => {
+  useExtend({ LayoutContainer, LayoutSprite });
 
   const [texture, textureSet] = useState(Texture.EMPTY);
 
-  const [assetAliasActiveIndex, assetAliasActiveIndexSet] = useState(0);
-
   useEffect(() => {
-    Assets.load(assetAliasCollection[assetAliasActiveIndex]).then(textureSet);
-  }, [assetAliasActiveIndex]);
+    const [bundleName, [assetAlias]] =
+      bundleDefinitionCollection[bundleDefinitionIndexActive];
+
+    Assets.loadBundle(bundleName)
+      .then(() => {
+        return Assets.load(assetAlias);
+      })
+      .then(textureSet);
+  }, [bundleDefinitionIndexActive]);
 
   return (
     texture !== Texture.EMPTY && (
-      <pixiSprite
+      /* @ts-expect-error native */
+      <pixiLayoutContainer
         layout={
           /** @type {pixiLayout.LayoutStyles} */ ({
-            width: 200,
-            height: 200,
-            objectFit: 'contain',
-            borderWidth: 2,
-            borderColor: 0xff0000
+            width: 350,
+            height: 400,
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: 0x000000
           })
         }
-        anchor={0.5}
-        texture={texture}
-        eventMode='static'
-        cursor='pointer'
-        onClick={() => assetAliasActiveIndexSet(!assetAliasActiveIndex ? 1 : 0)}
-      />
+      >
+        {/* @ts-expect-error native */}
+        <pixiLayoutSprite
+          {...(() => {
+            return /** @type {pixiJs.SpriteOptions} */ ({
+              layout: /** @type {pixiLayout.LayoutStyles} */ ({
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain'
+              }),
+              anchor: 0.5,
+              texture,
+              eventMode: 'static',
+              cursor: 'pointer',
+              onClick: () => {
+                textureSet(Texture.EMPTY);
+
+                _bundleDefinitionIndexActiveSet();
+              }
+            });
+          })()}
+        />
+        {/* @ts-expect-error native */}
+      </pixiLayoutContainer>
     )
   );
 };
 
 const ApplicationComponent = () => {
-  useExtend({ LayoutContainer });
-
   const {
     app: { stage, screen }
   } = useApplication();
+
+  const [bundleDefinitionIndexActive, bundleDefinitionIndexActiveSet] =
+    useState(0);
 
   useEffect(() => {
     Object.assign(stage, {
@@ -60,34 +93,34 @@ const ApplicationComponent = () => {
   }, [stage, screen]);
 
   return (
-    /* @ts-expect-error native */
-    <pixiLayoutContainer
-      layout={
-        /** @type {pixiLayout.LayoutStyles} */ ({
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 40,
-          borderWidth: 1,
-          borderColor: 0xff000
-        })
-      }
-    >
-      <SpriteComponent />
-      {/* @ts-expect-error native */}
-    </pixiLayoutContainer>
+    <BundleComponent
+      bundleDefinitionIndexActive={bundleDefinitionIndexActive}
+      _bundleDefinitionIndexActiveSet={() => {
+        bundleDefinitionIndexActiveSet(!bundleDefinitionIndexActive ? 1 : 0);
+      }}
+    />
   );
 };
 
 const Route = () => {
   useEffect(() => {
-    Assets.add(
-      assetAliasCollection.map((alias) => ({
-        alias,
-        src: `asset/${alias}.png`
-      }))
-    );
+    Assets.init({
+      manifest: {
+        bundles: bundleDefinitionCollection.map(
+          ([name, assetAliasCollection]) => ({
+            name,
+            assets: assetAliasCollection.map((alias) => ({
+              alias,
+              src: `asset/${alias}.png`
+            }))
+          })
+        )
+      }
+    });
 
-    Assets.backgroundLoad(assetAliasCollection);
+    Assets.backgroundLoadBundle(
+      bundleDefinitionCollection.map(([name]) => name)
+    );
   }, []);
 
   return (
