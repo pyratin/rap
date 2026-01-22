@@ -11,8 +11,6 @@ import {
 } from '@pixi/layout/components';
 import 'pixi.js/advanced-blend-modes';
 
-const textureAliasCollection = ['panda', 'rainbow-gradient'];
-
 const blendModeCollection = [
   'normal',
   'add',
@@ -41,35 +39,11 @@ const blendModeCollection = [
   'negation'
 ];
 
-const TextComponent = ({ index }) => {
-  useExtend({ LayoutText });
-
-  return (
-    /* @ts-expect-error native */
-    <pixiLayoutText
-      {...{
-        layout: /** @type {pixiLayout.LayoutStyles} */ ({
-          width: 'intrinsic',
-          height: 'intrinsic',
-          padding: 4,
-          marginTop: 'auto',
-          backgroundColor: 0x000000
-        }),
-        text: blendModeCollection[index].toUpperCase(),
-        style: /** @type {CSSStyleDeclaration} */ ({
-          fontSize: '20',
-          fontWeight: '800',
-          fontFamily: 'Roboto',
-          fill: '0xffffff'
-        })
-      }}
-    />
-  );
-};
+const textureAliasCollection = ['panda', 'rainbow-gradient'];
 
 const SpriteComponent = ({ index }) => {
   const textureCollection = useMemo(
-    () => textureAliasCollection.map((alias) => Assets.cache.get(alias)),
+    () => textureAliasCollection.map((alias) => Assets.get(alias)),
     []
   );
 
@@ -78,7 +52,9 @@ const SpriteComponent = ({ index }) => {
   const ref = useRef(undefined);
 
   useTick(() => {
-    Object.assign(ref.current, { rotation: ref.current.rotation + 0.01 });
+    Object.assign(ref.current, {
+      rotation: ref.current.rotation + 0.0025 * (index % 2 ? 1 : -1)
+    });
   });
 
   return (
@@ -93,7 +69,11 @@ const SpriteComponent = ({ index }) => {
             marginTop: 'auto'
           })
         }
-        texture={textureCollection[0]}
+        {...(() => {
+          return /** @type {pixiJs.SpriteOptions} */ ({
+            texture: textureCollection[0]
+          });
+        })()}
       />
 
       {/* @ts-expect-error native */}
@@ -116,15 +96,50 @@ const SpriteComponent = ({ index }) => {
   );
 };
 
+const TextComponent = ({ index }) => {
+  useExtend({ LayoutText });
+
+  return (
+    /* @ts-expect-error native */
+    <pixiLayoutText
+      layout={
+        /** @type {pixiLayout.LayoutStyles} */ ({
+          width: 'intrinsic',
+          height: 'intrinsic',
+          paddingTop: 0,
+          paddingRight: 4,
+          paddingBottom: 0,
+          paddingLeft: 4,
+          marginTop: 'auto',
+          borderWidth: 1,
+          borderColor: 0x00000,
+          backgroundColor: 0x00000
+        })
+      }
+      {...(() => {
+        return /** @type {pixiJs.TextOptions} */ ({
+          text: blendModeCollection[index].toUpperCase()
+        });
+      })()}
+      style={(() => {
+        return /** @type {CSSStyleDeclaration} */ ({
+          fontSize: '14',
+          fontWeight: '800',
+          fontFamily: 'Roboto',
+          fill: '#ffffff'
+        });
+      })()}
+    />
+  );
+};
+
 const LayoutContainerComponent = ({ index, bound }) => {
   const columnCount = 5;
 
   const dimension = useMemo(() => {
-    const { minX, maxX = 0, minY, maxY = 0 } = bound || {};
+    const { minX = 0, maxX = 0, minY = 0, maxY = 0 } = bound || {};
 
-    const value = Math.min(minX + maxX, minY + maxY) / columnCount;
-
-    return value && Array.from({ length: 2 }).map(() => value);
+    return Math.min(maxX - minX, maxY - minY) / columnCount;
   }, [bound]);
 
   useExtend({ LayoutContainer });
@@ -133,20 +148,20 @@ const LayoutContainerComponent = ({ index, bound }) => {
     /* @ts-expect-error native */
     <pixiLayoutContainer
       layout={
-        /** @type {pixiLayout.LayoutStyles} */ ({
-          width: dimension[0],
-          height: dimension[1],
+        /** @type {pixiLayout.LayoutOptions} */ ({
+          width: dimension,
+          height: dimension,
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
           borderWidth: 1,
-          borderColor: 0x00000
+          borderColor: 0x000000
         })
       }
     >
       <SpriteComponent index={index} />
 
-      <TextComponent index={index} />
+      {!!dimension && <TextComponent index={index} />}
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
@@ -161,11 +176,11 @@ const ApplicationComponent = () => {
 
   const ref = useRef(undefined);
 
-  const [bound, boundSet] = useState(/** @type {pixiJs.Bounds} */ (undefined));
+  const [bound, boundSet] = useState();
 
   useEffect(() => {
     Object.assign(stage, {
-      layout: /** @type {pixiLayout.LayoutStyles} */ ({
+      layout: /** @type {pixiLayout.LayoutOptions} */ ({
         width: screen.width,
         height: screen.height,
         justifyContent: 'center',
@@ -177,10 +192,6 @@ const ApplicationComponent = () => {
   useEffect(() => {
     boundSet(ref.current.getBounds());
   }, []);
-
-  useTick(() => {
-    Object.assign(ref.current, { rotation: ref.current.rotation + 0.0 });
-  });
 
   return (
     /* @ts-expect-error native */
