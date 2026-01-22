@@ -2,11 +2,11 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { Application, useExtend, useApplication, useTick } from '@pixi/react';
-import pixiJs, { Graphics, Texture, AnimatedSprite, Assets } from 'pixi.js';
-import '@pixi/layout';
+import { Assets, Texture, AnimatedSprite } from 'pixi.js';
+import * as pixiLayout from '@pixi/layout';
 import { LayoutContainer } from '@pixi/layout/components';
 
-const AnimatedSpriteComponent = ({ boundRef }) => {
+const AnimatedSpriteComponent = () => {
   useExtend({ AnimatedSprite });
 
   const ref = useRef(undefined);
@@ -14,73 +14,84 @@ const AnimatedSpriteComponent = ({ boundRef }) => {
   const [textureCollection, textureCollectionSet] = useState([Texture.EMPTY]);
 
   useEffect(() => {
-    Assets.load('asset/mc.json')
+    Assets.load('asset/fighter.json')
       .then(({ textures }) => Object.values(textures))
       .then(textureCollectionSet);
   }, []);
 
   useEffect(() => {
-    textureCollection[0] !== Texture.EMPTY &&
-      /** @type {pixiJs.AnimatedSprite} */ (ref.current).gotoAndPlay(
-        (Math.random() * textureCollection.length) | 0
-      );
+    textureCollection[0] !== Texture.EMPTY && ref.current.play();
   }, [textureCollection]);
 
-  useEffect(() => {
-    Object.assign(
-      ref.current,
-      /** @type {pixiJs.AnimatedSpriteOptions} */ ({
-        position: {
-          x: Math.random() * boundRef.current?.maxX,
-          y: Math.random() * boundRef.current?.maxY
-        },
-        rotation: Math.random() * (Math.PI * 2),
-        scale: Math.random() * 0.5 + 1,
-        animationSpeed: 1
-      })
-    );
-  });
-
   return (
-    <pixiAnimatedSprite ref={ref} textures={textureCollection} anchor={0.5} />
+    <pixiAnimatedSprite
+      ref={ref}
+      anchor={0.5}
+      layout={true}
+      textures={textureCollection}
+      animationSpeed={0.5}
+    />
   );
 };
 
 const ApplicationComponent = () => {
-  useExtend({ LayoutContainer, Graphics });
+  useExtend({ LayoutContainer });
 
   const {
-    app: { screen }
+    app: { stage, screen, renderer }
   } = useApplication();
 
   const ref = useRef(undefined);
 
-  const boundRef = useRef(undefined);
+  useEffect(() => {
+    Object.assign(stage, {
+      layout: /** @type {pixiLayout.LayoutStyles} */ ({
+        width: screen.width,
+        height: screen.height,
+        justifyContent: 'center',
+        alignItems: 'center'
+      })
+    });
+  }, [stage, screen]);
 
   useEffect(() => {
-    boundRef.current = /** @type {pixiJs.AnimatedSprite} */ (
-      ref.current
-    ).getBounds();
-  }, []);
+    const onRendererResizeHandle = () => {
+      Object.assign(stage, {
+        layout: /** @type {pixiLayout.LayoutStyles} */ ({
+          width: screen.width,
+          height: screen.height
+        })
+      });
+    };
+
+    renderer.on('resize', onRendererResizeHandle);
+
+    return () => {
+      renderer.off('resize', onRendererResizeHandle);
+    };
+  }, [renderer, stage, screen]);
 
   useTick(() => {
-    Object.assign(ref.current, { rotation: ref.current.rotation + 0.0 });
+    Object.assign(ref.current, {
+      rotation: ref.current.rotation + 0.01
+    });
   });
 
   return (
-    // @ts-expect-error native
-    <pixiLayoutContainer ref={ref}>
-      <pixiGraphics
-        draw={(graphics) => {
-          graphics
-            .rect(0, 0, screen.width, screen.height)
-            .stroke({ width: 10, alignment: 1, color: 0x000000 });
-        }}
-      />
-
-      {Array.from({ length: 50 }).map((_, index) => {
-        return <AnimatedSpriteComponent key={index} boundRef={boundRef} />;
-      })}
+    /* @ts-expect-error native */
+    <pixiLayoutContainer
+      ref={ref}
+      layout={
+        /** @type {pixiLayout.LayoutStyles} */ ({
+          padding: 20,
+          borderWidth: 1,
+          borderRadius: 12,
+          borderColor: 0x00000,
+          backgroundColor: 0x00ff0
+        })
+      }
+    >
+      <AnimatedSpriteComponent />
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
   );
