@@ -106,14 +106,11 @@ const TextComponent = ({ index }) => {
         /** @type {pixiLayout.LayoutStyles} */ ({
           width: 'intrinsic',
           height: 'intrinsic',
-          paddingTop: 0,
-          paddingRight: 4,
-          paddingBottom: 0,
-          paddingLeft: 4,
+          padding: 1,
           marginTop: 'auto',
           borderWidth: 1,
-          borderColor: 0x00000,
-          backgroundColor: 0x00000
+          borderColor: 0x000000,
+          backgroundColor: 0x000000
         })
       }
       {...(() => {
@@ -121,25 +118,23 @@ const TextComponent = ({ index }) => {
           text: blendModeCollection[index].toUpperCase()
         });
       })()}
-      style={(() => {
-        return /** @type {CSSStyleDeclaration} */ ({
-          fontSize: '14',
+      style={
+        /** @type {CSSStyleDeclaration} */ ({
+          fontSize: '16px',
           fontWeight: '800',
           fontFamily: 'Roboto',
           fill: '#ffffff'
-        });
-      })()}
+        })
+      }
     />
   );
 };
 
-const LayoutContainerComponent = ({ index, bound }) => {
-  const columnCount = 5;
-
+const ContainerComponent = ({ index, bound }) => {
   const dimension = useMemo(() => {
     const { minX = 0, maxX = 0, minY = 0, maxY = 0 } = bound || {};
 
-    return Math.min(maxX - minX, maxY - minY) / columnCount;
+    return Math.min(maxX - minX, maxY - minY) / 5;
   }, [bound]);
 
   useExtend({ LayoutContainer });
@@ -148,11 +143,10 @@ const LayoutContainerComponent = ({ index, bound }) => {
     /* @ts-expect-error native */
     <pixiLayoutContainer
       layout={
-        /** @type {pixiLayout.LayoutOptions} */ ({
+        /** @type {pixiLayout.LayoutStyles} */ ({
           width: dimension,
           height: dimension,
           flexDirection: 'column',
-          justifyContent: 'center',
           alignItems: 'center',
           borderWidth: 1,
           borderColor: 0x000000
@@ -176,11 +170,11 @@ const ApplicationComponent = () => {
 
   const ref = useRef(undefined);
 
-  const [bound, boundSet] = useState();
+  const [bound, boundSet] = useState(undefined);
 
   useEffect(() => {
     Object.assign(stage, {
-      layout: /** @type {pixiLayout.LayoutOptions} */ ({
+      layout: /** @type {pixiLayout.LayoutStyles} */ ({
         width: screen.width,
         height: screen.height,
         justifyContent: 'center',
@@ -202,15 +196,13 @@ const ApplicationComponent = () => {
           width: screen.width,
           height: screen.height,
           flexWrap: 'wrap',
-          justifyContent: 'center',
-          alignContent: 'center'
+          alignContent: 'center',
+          justifyContent: 'center'
         })
       }
     >
       {Array.from({ length: 25 }).map((_, index) => {
-        return (
-          <LayoutContainerComponent key={index} index={index} bound={bound} />
-        );
+        return <ContainerComponent key={index} index={index} bound={bound} />;
       })}
       {/* @ts-expect-error native */}
     </pixiLayoutContainer>
@@ -238,14 +230,14 @@ const Route = () => {
     Assets.load(assetCollection.map(({ alias }) => alias)).then(() => {
       initializedSet(true);
     });
-  });
+  }, []);
 
   return (
     initialized && (
       <div className='Route'>
         <Application
           resizeTo={window}
-          backgroundColor={0xffffff}
+          backgroundColor={0x1099bb}
           useBackBuffer={true}
         >
           <ApplicationComponent />
