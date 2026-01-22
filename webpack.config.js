@@ -28,7 +28,7 @@ export default {
     }),
     new MiniCssExtractPlugin(),
     new CopyWebpackPlugin({
-      patterns: ['asset'].map((pathFragment) => ({
+      patterns: ['asset', 'font'].map((pathFragment) => ({
         from: path.join(pathDefinition.source, pathFragment),
         to: path.join(pathDefinition.target, pathFragment)
       }))
